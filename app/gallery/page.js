@@ -1,3 +1,8 @@
+import MakeGallery from "../components/makeGallery";
 export default function Gallery() {
-  return <h1>Gallery Page</h1>;
+  return(
+    <div>
+    <MakeGallery />
+    </div>
+  );
 }
