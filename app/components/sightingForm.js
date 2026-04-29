@@ -26,10 +26,6 @@ export default function SightingForm() {
 
   const debounceRef = useRef(null);
 
-  // ----------------------------
-  // IMAGE UPLOAD (PINATA FILE)
-  // ----------------------------
-  
   const uploadImageToPinata = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -53,8 +49,6 @@ export default function SightingForm() {
     const data = await res.json();
     return data.IpfsHash;
   };
-  
-
   
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -117,9 +111,6 @@ export default function SightingForm() {
     setLocationResults([]);
   };
 
-  // ----------------------------
-  // SUBMIT LOGIC
-  // ----------------------------
   const handleSubmit = async () => {
     if (!image) return setStatus("Please upload an image");
     if (!selectedBird) return setStatus("Please select a bird");
@@ -154,10 +145,6 @@ export default function SightingForm() {
           },
         ],
       };
-
-      // ----------------------------
-      // MINT FLOW
-      // ----------------------------
       if (shouldMint) {
         setStatus("Connecting wallet...");
         await connectWallet();
@@ -221,7 +208,6 @@ export default function SightingForm() {
         Log a Sighting
       </h1>
 
-      {/* Image */}
       <div className="flex flex-col items-center">
         <input
           type="file"
@@ -246,7 +232,6 @@ export default function SightingForm() {
         )}
       </div>
 
-      {/* Bird search */}
       <div className="relative">
         <label className="block font-medium mb-1">
           Search Bird
@@ -289,7 +274,6 @@ export default function SightingForm() {
         )}
       </div>
 
-      {/* Location */}
       <div className="relative">
         <label className="block font-medium mb-1">
           Location
@@ -326,7 +310,6 @@ export default function SightingForm() {
         )}
       </div>
 
-      {/* Mint toggle */}
       <div className="flex items-center gap-3">
         <label className="font-medium">Mint as NFT?</label>
 
@@ -348,7 +331,6 @@ export default function SightingForm() {
         </span>
       </div>
 
-      {/* Submit */}
       <button
         onClick={handleSubmit}
         disabled={submitting}
