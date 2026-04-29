@@ -180,9 +180,6 @@ export default function SightingForm() {
     setSubmitting(false);
   };
 
-  // ---------------------------
-  // UI
-  // ---------------------------
   return (
     <div className="max-w-lg mx-auto p-6 space-y-6">
       <h1 className="text-2xl font-bold text-center">
