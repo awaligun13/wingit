@@ -3,9 +3,10 @@ import { useState, useRef } from "react";
 import { searchBirds } from "../../lib/INaturalist";
 import { detectLocation, searchLocation } from "../../lib/useLocation";
 import { useWingIt } from "../../lib/WingItFunctions";
+import { uploadMetadataToPinata } from "../../lib/pinata";
 
 export default function SightingForm() {
-  const { connectWallet, mintSighting } = useWingIt();
+  const { connectWallet, mintSighting} = useWingIt();
 
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -25,6 +26,10 @@ export default function SightingForm() {
 
   const debounceRef = useRef(null);
 
+  // ----------------------------
+  // IMAGE UPLOAD (PINATA FILE)
+  // ----------------------------
+  
   const uploadImageToPinata = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -48,7 +53,9 @@ export default function SightingForm() {
     const data = await res.json();
     return data.IpfsHash;
   };
+  
 
+  
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -110,6 +117,9 @@ export default function SightingForm() {
     setLocationResults([]);
   };
 
+  // ----------------------------
+  // SUBMIT LOGIC
+  // ----------------------------
   const handleSubmit = async () => {
     if (!image) return setStatus("Please upload an image");
     if (!selectedBird) return setStatus("Please select a bird");
@@ -120,29 +130,52 @@ export default function SightingForm() {
     try {
       setStatus("Uploading image...");
       const imageCID = await uploadImageToPinata(image);
+
       const metadata = {
-        species: selectedBird.name,
-        commonName: selectedBird.commonName,
-        location,
+        name: selectedBird.commonName,
+        description: `Bird sighting of ${selectedBird.name}`,
         image: `ipfs://${imageCID}`,
-        iNatData: selectedBird,
-        timestamp: new Date().toISOString(),
+        attributes: [
+          {
+            trait_type: "Species",
+            value: selectedBird.name,
+          },
+          {
+            trait_type: "Common Name",
+            value: selectedBird.commonName,
+          },
+          {
+            trait_type: "Location",
+            value: location,
+          },
+          {
+            trait_type: "Timestamp",
+            value: new Date().toISOString(),
+          },
+        ],
       };
 
-      // 3. Save or mint
+      // ----------------------------
+      // MINT FLOW
+      // ----------------------------
       if (shouldMint) {
         setStatus("Connecting wallet...");
         await connectWallet();
+
+        setStatus("Uploading metadata...");
+        const metadataCID = await uploadMetadataToPinata(metadata);
+        const tokenURI = `ipfs://${metadataCID}`;
 
         setStatus("Minting NFT...");
         await mintSighting(
           selectedBird.name,
           location,
-          metadata.image
+          tokenURI
         );
 
         setStatus("Sighting minted successfully!");
-      } else {
+      }
+      else {
         let existing = [];
         try {
           existing = JSON.parse(
@@ -154,7 +187,11 @@ export default function SightingForm() {
 
         const draft = {
           id: Date.now(),
-          ...metadata,
+          species: selectedBird.name,
+          commonName: selectedBird.commonName,
+          location,
+          image: metadata.image,
+          timestamp: new Date().toISOString(),
           minted: false,
         };
 
@@ -165,8 +202,6 @@ export default function SightingForm() {
 
         setStatus("Sighting saved!");
       }
-
-      // reset form
       setImage(null);
       setImagePreview(null);
       setBirdQuery("");
@@ -186,7 +221,7 @@ export default function SightingForm() {
         Log a Sighting
       </h1>
 
-      {/* Image upload */}
+      {/* Image */}
       <div className="flex flex-col items-center">
         <input
           type="file"
@@ -215,43 +250,51 @@ export default function SightingForm() {
       <div className="relative">
         <label className="block font-medium mb-1">
           Search Bird
-        </label> 
-        <input 
-          className="w-full border rounded p-2" 
-          value={birdQuery} 
-          onChange={handleBirdSearch} 
-          placeholder="e.g. American Robin" 
-          />
-        {birdLoading && ( 
-          <p className="text-sm text-gray-500">
-            Searching...
-            </p> 
-          )}
-        {birdResults.length > 0 && ( 
-          <ul className="absolute z-10 bg-white border 
-          rounded w-full shadow max-h-48 overflow-y-auto"> 
-          {birdResults.map((bird) => ( 
-            <li 
-              key={bird.id} 
-              onClick={() => handleSelectBird(bird)} 
-              className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer" 
-              > 
-              {bird.photoUrl && ( 
-                <img src={bird.photoUrl} 
-                      className="w-8 h-8 rounded object-cover" 
-                  /> 
-                  )} 
-                <span> 
-                  {bird.commonName} 
-                  <span 
-                    className="text-gray-400 text-sm italic"
-                  > {" "}
-                  ({bird.name}) 
-                  </span> </span> </li> ))} </ul> )} </div>
+        </label>
+
+        <input
+          className="w-full border rounded p-2"
+          value={birdQuery}
+          onChange={handleBirdSearch}
+          placeholder="e.g. American Robin"
+        />
+
+        {birdLoading && (
+          <p className="text-sm text-gray-500">Searching...</p>
+        )}
+
+        {birdResults.length > 0 && (
+          <ul className="absolute z-10 bg-white border rounded w-full shadow max-h-48 overflow-y-auto">
+            {birdResults.map((bird) => (
+              <li
+                key={bird.id}
+                onClick={() => handleSelectBird(bird)}
+                className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer"
+              >
+                {bird.photoUrl && (
+                  <img
+                    src={bird.photoUrl}
+                    className="w-8 h-8 rounded object-cover"
+                  />
+                )}
+                <span>
+                  {bird.commonName}{" "}
+                  <span className="text-gray-400 text-sm italic">
+                    ({bird.name})
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       {/* Location */}
       <div className="relative">
-        <label className = "block font-medium mb-1">Location</label>
+        <label className="block font-medium mb-1">
+          Location
+        </label>
+
         <div className="flex gap-2">
           <input
             className="w-full border rounded p-2"
@@ -264,8 +307,8 @@ export default function SightingForm() {
             onClick={handleDetectLocation}
             className="px-3 py-2 bg-gray-200 rounded"
           >
-            {locationLoading ? "..." : "📍 Detect"} 
-          </button> 
+            {locationLoading ? "..." : "📍 Detect"}
+          </button>
         </div>
 
         {locationResults.length > 0 && (
@@ -283,39 +326,40 @@ export default function SightingForm() {
         )}
       </div>
 
-     <div className="flex items-center gap-3">
-  <label className="font-medium">
-    Mint as NFT?
-  </label>
+      {/* Mint toggle */}
+      <div className="flex items-center gap-3">
+        <label className="font-medium">Mint as NFT?</label>
 
-  <button
-    onClick={() => setShouldMint(!shouldMint)}
-    className={`w-12 h-6 rounded-full transition-colors ${
-      shouldMint ? "bg-green-500" : "bg-gray-300"
-    }`}
-  >
-    <span
-      className={`block w-5 h-5 bg-white rounded-full transform transition-transform ${
-        shouldMint ? "translate-x-6" : "translate-x-1"
-      }`}
-    />
-  </button>
+        <button
+          onClick={() => setShouldMint(!shouldMint)}
+          className={`w-12 h-6 rounded-full transition-colors ${
+            shouldMint ? "bg-green-500" : "bg-gray-300"
+          }`}
+        >
+          <span
+            className={`block w-5 h-5 bg-white rounded-full transform transition-transform ${
+              shouldMint ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
 
-  <span className="text-sm text-gray-500">
-    {shouldMint ? "Will mint on BSC" : "Save locally only"}
-  </span>
-</div>
+        <span className="text-sm text-gray-500">
+          {shouldMint ? "Will mint on BSC" : "Save locally only"}
+        </span>
+      </div>
 
-    {/* Submit */} 
-    <button 
-      onClick={handleSubmit} 
-      disabled={submitting} 
-      className="w-full bg-blue-600 text-white py-2 
-        rounded font-semibold disabled:opacity-50" 
-    > {submitting ? "Processing..." : "Log Sighting"} 
-    </button> {status && 
-    ( <p className="text-sm text-center text-gray-700"> 
-    {status} </p> )} 
-    </div> 
-    ); 
-  }
+      {/* Submit */}
+      <button
+        onClick={handleSubmit}
+        disabled={submitting}
+        className="w-full bg-blue-600 text-white py-2 rounded font-semibold disabled:opacity-50"
+      >
+        {submitting ? "Processing..." : "Log Sighting"}
+      </button>
+
+      {status && (
+        <p className="text-sm text-center text-gray-700">{status}</p>
+      )}
+    </div>
+  );
+}
