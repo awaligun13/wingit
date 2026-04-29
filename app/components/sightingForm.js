@@ -213,44 +213,59 @@ export default function SightingForm() {
 
       {/* Bird search */}
       <div className="relative">
-        <input
-          className="w-full border rounded p-2"
-          value={birdQuery}
-          onChange={handleBirdSearch}
-          placeholder="Search bird"
-        />
-
-        {birdResults.length > 0 && (
-          <ul className="absolute z-10 bg-white border w-full shadow max-h-48 overflow-y-auto">
-            {birdResults.map((bird) => (
-              <li
-                key={bird.id}
-                onClick={() => handleSelectBird(bird)}
-                className="p-2 hover:bg-gray-100 cursor-pointer"
-              >
-                {bird.commonName}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+        <label className="block font-medium mb-1">
+          Search Bird
+        </label> 
+        <input 
+          className="w-full border rounded p-2" 
+          value={birdQuery} 
+          onChange={handleBirdSearch} 
+          placeholder="e.g. American Robin" 
+          />
+        {birdLoading && ( 
+          <p className="text-sm text-gray-500">
+            Searching...
+            </p> 
+          )}
+        {birdResults.length > 0 && ( 
+          <ul className="absolute z-10 bg-white border 
+          rounded w-full shadow max-h-48 overflow-y-auto"> 
+          {birdResults.map((bird) => ( 
+            <li 
+              key={bird.id} 
+              onClick={() => handleSelectBird(bird)} 
+              className="flex items-center gap-2 p-2 hover:bg-gray-100 cursor-pointer" 
+              > 
+              {bird.photoUrl && ( 
+                <img src={bird.photoUrl} 
+                      className="w-8 h-8 rounded object-cover" 
+                  /> 
+                  )} 
+                <span> 
+                  {bird.commonName} 
+                  <span 
+                    className="text-gray-400 text-sm italic"
+                  > {" "}
+                  ({bird.name}) 
+                  </span> </span> </li> ))} </ul> )} </div>
 
       {/* Location */}
       <div className="relative">
+        <label className = "block font-medium mb-1">Location</label>
         <div className="flex gap-2">
           <input
             className="w-full border rounded p-2"
             value={location}
             onChange={handleLocationSearch}
-            placeholder="Location"
+            placeholder="Search or detect location"
           />
 
           <button
             onClick={handleDetectLocation}
             className="px-3 py-2 bg-gray-200 rounded"
           >
-            📍
-          </button>
+            {locationLoading ? "..." : "📍 Detect"} 
+          </button> 
         </div>
 
         {locationResults.length > 0 && (
@@ -259,7 +274,7 @@ export default function SightingForm() {
               <li
                 key={i}
                 onClick={() => handleSelectLocation(r)}
-                className="p-2 hover:bg-gray-100 cursor-pointer"
+                className="p-2 hover:bg-gray-100 cursor-pointer text-sm"
               >
                 {r.display_name}
               </li>
@@ -268,30 +283,39 @@ export default function SightingForm() {
         )}
       </div>
 
-      {/* Mint toggle */}
-      <button
-        onClick={() => setShouldMint(!shouldMint)}
-        className={`px-4 py-2 rounded ${
-          shouldMint ? "bg-green-500" : "bg-gray-300"
-        }`}
-      >
-        {shouldMint ? "Mint ON" : "Mint OFF"}
-      </button>
+     <div className="flex items-center gap-3">
+  <label className="font-medium">
+    Mint as NFT?
+  </label>
 
-      {/* Submit */}
-      <button
-        onClick={handleSubmit}
-        disabled={submitting}
-        className="w-full bg-blue-600 text-white py-2 rounded"
-      >
-        {submitting ? "Processing..." : "Log Sighting"}
-      </button>
+  <button
+    onClick={() => setShouldMint(!shouldMint)}
+    className={`w-12 h-6 rounded-full transition-colors ${
+      shouldMint ? "bg-green-500" : "bg-gray-300"
+    }`}
+  >
+    <span
+      className={`block w-5 h-5 bg-white rounded-full transform transition-transform ${
+        shouldMint ? "translate-x-6" : "translate-x-1"
+      }`}
+    />
+  </button>
 
-      {status && (
-        <p className="text-center text-sm text-gray-600">
-          {status}
-        </p>
-      )}
-    </div>
-  );
-}
+  <span className="text-sm text-gray-500">
+    {shouldMint ? "Will mint on BSC" : "Save locally only"}
+  </span>
+</div>
+
+    {/* Submit */} 
+    <button 
+      onClick={handleSubmit} 
+      disabled={submitting} 
+      className="w-full bg-blue-600 text-white py-2 
+        rounded font-semibold disabled:opacity-50" 
+    > {submitting ? "Processing..." : "Log Sighting"} 
+    </button> {status && 
+    ( <p className="text-sm text-center text-gray-700"> 
+    {status} </p> )} 
+    </div> 
+    ); 
+  }
